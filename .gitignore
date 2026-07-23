@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+MLProject/mlruns/
+MLProject/artifacts/
+MLProject/run_id.txt

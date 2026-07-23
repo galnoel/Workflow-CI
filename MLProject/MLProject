@@ -1,0 +1,10 @@
+name: telco_churn_model
+
+conda_env: conda.yaml
+
+entry_points:
+  main:
+    parameters:
+      data_path: {type: str, default: "telco_customer_churn_preprocessing"}
+      run_id_output: {type: str, default: "run_id.txt"}
+    command: "python modelling.py --data_path {data_path} --run_id_output {run_id_output}"
