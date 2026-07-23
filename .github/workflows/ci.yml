@@ -18,13 +18,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: MLProject/requirements.txt
 
       - name: Validate required Docker Hub secrets
         env:
@@ -37,13 +38,7 @@ jobs:
       - name: Install reproducible dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install \
-            mlflow==2.19.0 \
-            scikit-learn==1.5.2 \
-            pandas==2.2.3 \
-            numpy==2.2.1 \
-            matplotlib==3.10.0 \
-            seaborn==0.13.2
+          python -m pip install -r MLProject/requirements.txt
 
       - name: Train through the MLflow Project
         id: train
@@ -58,7 +53,7 @@ jobs:
           echo "Model trained successfully. Run ID: $RUN_ID"
 
       - name: Upload MLflow run artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: telco-churn-mlflow-${{ github.sha }}
           path: |
