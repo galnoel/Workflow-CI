@@ -1,0 +1,9 @@
+Docker Hub repository:
+https://hub.docker.com/r/galnoel/telco-churn-model
+
+Published tags:
+- latest
+- f7247bab705e41fb4e21783e9a936a2e68faffe6
+
+Both tags were built and smoke-tested by GitHub Actions run:
+https://github.com/galnoel/Workflow-CI/actions/runs/30065291169
