@@ -17,17 +17,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Run actions/checkout@v6
         uses: actions/checkout@v6
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.12.7
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.12.7"
           cache: pip
           cache-dependency-path: MLProject/requirements.txt
 
-      - name: Validate required Docker Hub secrets
+      - name: Check env
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -35,7 +35,7 @@ jobs:
           test -n "$DOCKERHUB_USERNAME" || (echo "::error::DOCKERHUB_USERNAME is not configured" && exit 1)
           test -n "$DOCKERHUB_TOKEN" || (echo "::error::DOCKERHUB_TOKEN is not configured" && exit 1)
 
-      - name: Install reproducible dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r MLProject/requirements.txt
@@ -52,7 +52,7 @@ jobs:
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
           echo "Model trained successfully. Run ID: $RUN_ID"
 
-      - name: Upload MLflow run artifact
+      - name: Upload to GitHub
         uses: actions/upload-artifact@v6
         with:
           name: telco-churn-mlflow-${{ github.sha }}
@@ -65,13 +65,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build immutable model image with MLflow
+      - name: Build Docker model
         working-directory: MLProject
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -83,9 +77,22 @@ jobs:
             --model-uri "runs:/${RUN_ID}/model" \
             --name "$IMAGE_SHA" \
             --env-manager local
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tag Docker Image
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          IMAGE_SHA="${DOCKERHUB_USERNAME}/telco-churn-model:${COMMIT_SHA}"
           docker tag "$IMAGE_SHA" "${DOCKERHUB_USERNAME}/telco-churn-model:latest"
 
-      - name: Smoke-test model image
+      - name: Smoke-test Docker Image
         working-directory: MLProject
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -99,7 +106,7 @@ jobs:
         if: always()
         run: docker rm --force telco-churn-smoke 2>/dev/null || true
 
-      - name: Push immutable and latest model images
+      - name: Push Docker image
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           COMMIT_SHA: ${{ github.sha }}
